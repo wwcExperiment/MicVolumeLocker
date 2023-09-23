@@ -1,0 +1,58 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF> 
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NAudio" Version="2.2.1" />
+    <PackageReference Include="NAudio.Core" Version="2.2.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Resource1.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resource1.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Resource1.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resource1.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Resources\" />
+  </ItemGroup>
+	<!--<ItemGroup>
+		<FilesToBundle
+			  Remove="@(_FilesToBundle)"
+
+			  Condition=
+        "
+           $([System.Text.RegularExpressions.Regex]::IsMatch(%(_FilesToBundle.RelativePath), &quot;.*(netstandard.dll|System.Diagnostics.Debug.dll|System.Diagnostics.Tracing.dll|System.Drawing.dll|System.Runtime.dll|System.Runtime.Extensions.dll|System.Runtime.Loader.dll|System.Text.Encoding.Extensions.dll|System.Threading.Thread.dll|System.Threading.ThreadPool.dll|System.Xml.ReaderWriter.dll|PresentationCore.resources.dll|PresentationFramework.resources.dll|MicVolume.pdb|MicVolume.runtimeconfig.json|MicVolume.deps.json)&quot;))
+        "
+        />
+	</ItemGroup>-->
+	<Target Name="ExplicitRemoveFromFilesToBundle" BeforeTargets="GenerateSingleFileBundle" DependsOnTargets="PrepareForBundle">
+		<ItemGroup>
+			<!--FilesToRemoveFromBundle Include="@(FilesToBundle)" Condition="$([System.String]::new('netstandard.dll|System.Diagnostics.Debug.dll|System.Diagnostics.Tracing.dll|System.Drawing.dll|System.Runtime.dll|System.Runtime.Extensions.dll|System.Runtime.Loader.dll|System.Text.Encoding.Extensions.dll|System.Threading.Thread.dll|System.Threading.ThreadPool.dll|System.Xml.ReaderWriter.dll|PresentationCore.resources.dll|PresentationFramework.resources.dll|MicVolume.pdb|MicVolume.runtimeconfig.json|MicVolume.deps.json').ToLower().Contains('%(Filename)'.ToLower()))" />-->
+			<FilesToRemoveFromBundle Include="@(FilesToBundle)" Condition="$([System.String]::new('%(Filename)').ToLower().Contains('netstandard.dll')) OR $([System.String]::new('%(Filename)').ToLower().Contains('System.Diagnostics.Debug.dll'.ToLower())) OR $([System.String]::new('%(Filename)').ToLower().Contains('System.Diagnostics.Tracing.dll')) OR $([System.String]::new('%(Filename)').ToLower().Contains('System.Drawing.dll')) OR $([System.String]::new('%(Filename)').ToLower().Contains('System.Runtime.dll'.ToLower())) OR $([System.String]::new('%(Filename)').ToLower().Contains('System.Runtime.Extensions.dll')) OR $([System.String]::new('%(Filename)').ToLower().Contains('System.Runtime.Loader.dll')) OR $([System.String]::new('%(Filename)').ToLower().Contains('System.Text.Encoding.Extensions.dll')) OR $([System.String]::new('%(Filename)').ToLower().Contains('System.Threading.Thread.dll')) OR $([System.String]::new('%(Filename)').ToLower().Contains('System.Threading.ThreadPool.dll')) OR $([System.String]::new('%(Filename)').ToLower().Contains('System.Xml.ReaderWriter.dll')) OR $([System.String]::new('%(Filename)').ToLower().Contains('PresentationCORe.resources.dll')) OR $([System.String]::new('%(Filename)').ToLower().Contains('PresentationFramewORk.resources.dll')) OR $([System.String]::new('%(Filename)').ToLower().Contains('MicVolume.pdb')) OR $([System.String]::new('%(Filename)').ToLower().Contains('MicVolume.runtimeconfig.json')) OR $([System.String]::new('%(Filename)').ToLower().Contains('MicVolume.deps.json')) " />
+		</ItemGroup>
+		<Message Text="FilesToRemoveFromBundle '@(FilesToRemoveFromBundle)'" Importance="high" />
+		<ItemGroup>
+			<FilesToBundle Remove="@(FilesToRemoveFromBundle)" />
+		</ItemGroup>
+	</Target>
+
+	<Target Name="CopyFilesToRemoveFromBundle" AfterTargets="Publish">
+		<Copy SourceFiles="@(FilesToRemoveFromBundle)" DestinationFolder="$(PublishDir)" />
+		<Message Text="Copied files to remove from bundle to '$(PublishDir)'" Importance="high" />
+	</Target>
+</Project>
