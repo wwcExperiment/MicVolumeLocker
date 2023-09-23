@@ -2,17 +2,11 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.DirectoryServices;
-using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Timers;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Forms;
-using System.Xml.Linq; 
 using NAudio.Mixer;
 using NAudio.Wave;
 using Timer = System.Timers.Timer;
@@ -21,7 +15,7 @@ namespace MicVolumeLocker
 {
     public class MicItem : INotifyPropertyChanged
     {
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         public int Index;
 
@@ -34,7 +28,7 @@ namespace MicVolumeLocker
         public MicItem SetVolume(double val){volume= val;return this;}
         public double GetVolume()=>volume;
         public bool Locked { get; set; }
-        public void OnPropertyChanged([CallerMemberName] string name = null)
+        public void OnPropertyChanged([CallerMemberName] string? name = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
@@ -189,10 +183,6 @@ namespace MicVolumeLocker
 
         private void CheckBox_Checked(object sender, RoutedEventArgs e)
         {
-            //System.Windows.Controls.CheckBox checkBox = sender as System.Windows.Controls.CheckBox;
-            //if (checkBox == null) { return; }
-            //MicItem? micItem = checkBox.Tag as MicItem;
-            //if (micItem == null) { return; } 
         }
 
 
@@ -208,8 +198,6 @@ namespace MicVolumeLocker
             if (WindowState == WindowState.Minimized)
             {
                 Hide();
-                //if (m_notifyIcon != null)
-                //    m_notifyIcon.ShowBalloonTip(2000);
             }
             else
                 m_storedWindowState = WindowState;
