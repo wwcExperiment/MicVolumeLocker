@@ -6,10 +6,15 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MicVolumeLocker"
         mc:Ignorable="d"
-        Title="MainWindow" Height="176" Width="499" Closing="OnClose" StateChanged="OnStateChanged" IsVisibleChanged="OnIsVisibleChanged">
- 
+        Title="MainWindow" Height="176" Width="529" Closing="OnClose" StateChanged="OnStateChanged" IsVisibleChanged="OnIsVisibleChanged">
+
     <Grid>
-        <DataGrid  x:Name="listBox" d:ItemsSource="{d:SampleData ItemCount=5}" CanUserAddRows="False" AutoGeneratingColumn="listBox_AutoGeneratingColumn">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="435*"/>
+            <ColumnDefinition Width="64*"/>
+        </Grid.ColumnDefinitions>
+        <DataGrid  x:Name="listBox" d:ItemsSource="{d:SampleData ItemCount=5}" CanUserAddRows="False" AutoGeneratingColumn="listBox_AutoGeneratingColumn" Grid.ColumnSpan="2" >
         </DataGrid >
+        <CheckBox x:Name="checkBox" Content="Autorun" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,0,0" Checked="checkBox_Changed"  Unchecked="checkBox_Changed" Grid.ColumnSpan="2"/>
     </Grid>
 </Window>

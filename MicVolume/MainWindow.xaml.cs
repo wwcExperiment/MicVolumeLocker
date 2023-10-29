@@ -2,11 +2,17 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Forms;
+using Microsoft.Win32;
 using NAudio.Mixer;
 using NAudio.Wave;
 using Timer = System.Timers.Timer;
@@ -61,20 +67,27 @@ namespace MicVolumeLocker
             m_notifyIcon.BalloonTipText = "The app has been minimised. Click the tray icon to show.";
             m_notifyIcon.BalloonTipTitle = this.Title;
             m_notifyIcon.BalloonTipIcon = ToolTipIcon.Info;
-            m_notifyIcon.Text = this.Title; 
+            m_notifyIcon.Text = this.Title;
             m_notifyIcon.Icon = Resource1.Icon1;
             m_notifyIcon.Click += new EventHandler(m_notifyIcon_Click);
             InitializeComponent();
             timer.Interval = 10000;
             timer.Elapsed += (s, e) => { TimerScan(); };
             timer.Start();
-            listBox.ItemsSource=micItems;
+            listBox.ItemsSource = micItems;
             for (int i = 0; i < WaveIn.DeviceCount; i++)
             {
                 var caps = WaveIn.GetCapabilities(i);
-                micItems.Add(new MicItem { Index = i, Name = caps.ProductName, Type="mic", Locked = false }.SetVolume(GetMicVolume(i)));
-            } 
+                micItems.Add(new MicItem { Index = i, Name = caps.ProductName, Type = "mic", Locked = false }.SetVolume(GetMicVolume(i)));
+            }
             TimerScan();
+            checkBox.IsChecked = IsStartupEnabled();
+            if (Environment.GetCommandLineArgs().Contains("-h"))
+            {
+                WindowState = WindowState.Minimized;
+                OnStateChanged(this, null);
+                CheckTrayIcon();
+            }
         }
         private void TimerScan()
         {
@@ -104,7 +117,7 @@ namespace MicVolumeLocker
                 if (mic == -1)
                 {
                     if (item.Locked)
-                    { item.DisplayName = "missing";  }
+                    { item.DisplayName = "missing"; }
                     else { notFound.Add(item); }
                 }
                 else
@@ -124,7 +137,7 @@ namespace MicVolumeLocker
                     }
                     else
                     {
-                        item.SetVolume( GetMicVolume(mic));
+                        item.SetVolume(GetMicVolume(mic));
                         Dispatcher.Invoke(() =>
                         {
                         });
@@ -181,9 +194,6 @@ namespace MicVolumeLocker
             return volumeControl;
         }
 
-        private void CheckBox_Checked(object sender, RoutedEventArgs e)
-        {
-        }
 
 
         void OnClose(object sender, CancelEventArgs args)
@@ -233,6 +243,146 @@ namespace MicVolumeLocker
                 b.UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged;
             }
         }
+
+        private const string RegistryKeyPath = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
+
+        public bool IsStartupEnabled()
+        {
+            string applicationName = GetApplicationName();
+
+            using (RegistryKey key = Registry.CurrentUser.OpenSubKey(RegistryKeyPath))
+            {
+                if (key != null)
+                {
+                    return key.GetValue(applicationName) != null;
+                }
+                else
+                {
+                    // Handle the case where the Registry key is not found
+                    return false;
+                }
+            }
+        }
+
+        public void EnableStartup()
+        {
+            string applicationName = GetApplicationName();
+            string applicationPath = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
+            string currentUserSid = GetCurrentUserSid();
+
+            using (RegistryKey key = RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, this.GetRegistryView()))
+            {
+                using (RegistryKey subKey = key.OpenSubKey(RegistryKeyPath, RegistryKeyPermissionCheck.ReadWriteSubTree, RegistryRights.FullControl))
+                {
+                    subKey.SetValue(applicationName, "\""+applicationPath+"\" -h", RegistryValueKind.String);
+
+                    string[] names = subKey.GetValueNames();
+
+                    Debug.WriteLine(subKey + " -- " + applicationPath);
+
+                    foreach (string s in names)
+                    {
+                        Debug.WriteLine(" ->>> " + s);
+                    }
+
+                    subKey.Dispose();
+                }
+            }
+        }
+
+        public void DisableStartup()
+        {
+            string applicationName = GetApplicationName();
+            string applicationPath = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
+            string currentUserSid = GetCurrentUserSid();
+
+            try
+            {
+                RegistryKey myKey = RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, this.GetRegistryView());
+                {
+                    using (RegistryKey subKey = myKey.OpenSubKey(RegistryKeyPath, RegistryKeyPermissionCheck.ReadWriteSubTree, RegistryRights.FullControl))
+                    {
+                        subKey.DeleteValue(applicationName, false);
+
+                        string[] names = subKey.GetValueNames();
+
+                        Debug.WriteLine(subKey);
+
+                        foreach (string s in names)
+                        {
+                            Debug.WriteLine(" - " + s);
+                        }
+
+                        subKey.Close();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Handle or log the exception
+                Console.WriteLine("Failed to disable startup: " + ex.Message);
+            }
+        }
+        public string GetApplicationName()
+        {
+            Assembly assembly = Assembly.GetEntryAssembly();
+            return assembly.GetName().Name;
+        }
+
+        public string GetApplicationPath()
+        {
+            Assembly assembly = Assembly.GetEntryAssembly();
+            return Path.GetDirectoryName(assembly.Location);
+        }
+
+        private RegistryView GetRegistryView()
+        {
+            // Determine the registry view based on the application's target platform
+            bool is64BitProcess = Environment.Is64BitProcess;
+            return is64BitProcess ? RegistryView.Registry64 : RegistryView.Registry32;
+        }
+
+        private string GetCurrentUserSid()
+        {
+            try
+            {
+                // Get the current user's Windows identity
+                WindowsIdentity windowsIdentity = WindowsIdentity.GetCurrent();
+
+                if (windowsIdentity != null)
+                {
+                    // Get the user's SID
+                    return windowsIdentity.User.Value;
+                }
+                else
+                {
+                    // Handle the case where the Windows identity is not available
+                    return string.Empty; // or throw new Exception("Windows identity not available");
+                }
+            }
+            catch (Exception ex)
+            {
+                // Handle or log any exceptions that may occur
+                Console.WriteLine("Failed to retrieve current user's SID: " + ex.Message);
+                return string.Empty; // or throw the exception if necessary
+            }
+        }
+
+        private void checkBox_Changed(object sender, RoutedEventArgs e)
+        {
+            if (checkBox.IsChecked != IsStartupEnabled())
+            {
+                if (checkBox.IsChecked == true)
+                {
+                    EnableStartup();
+                }
+                else
+                {
+                    DisableStartup();
+                }
+            }
+        }
+
     }
 
     
