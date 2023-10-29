@@ -29,5 +29,21 @@
 
   <ItemGroup>
     <Folder Include="Resources\" />
-  </ItemGroup>
+  </ItemGroup>   
+	  <Target Name="ExplicitRemoveFromFilesToBundle" BeforeTargets="GenerateSingleFileBundle" DependsOnTargets="PrepareForBundle">
+    <ItemGroup>
+      <FilesToRemoveFromBundle Include="@(FilesToBundle)" Condition="$([System.String]::new('%(Filename)').ToLower().Contains('netstandard')) AND ('%(Extension)' == '.dll') OR
+							  $([System.String]::new('%(Filename)').ToLower().Contains('presentationcore.resources')) AND ('%(Extension)' == '.dll') OR
+							  $([System.String]::new('%(Filename)').ToLower().Contains('presentationframework.resources')) AND ('%(Extension)' == '.dll')  " />
+    </ItemGroup>
+    <Message Text="FilesToRemoveFromBundle '@(FilesToRemoveFromBundle)'" Importance="high" />
+    <ItemGroup>
+      <FilesToBundle Remove="@(FilesToRemoveFromBundle)" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="CopyFilesToRemoveFromBundle" AfterTargets="Publish">
+    <Copy SourceFiles="@(FilesToRemoveFromBundle)" DestinationFolder="$(PublishDir)" />
+    <Message Text="Copied files to remove from bundle to '$(PublishDir)'" Importance="high" />
+  </Target>
 </Project>

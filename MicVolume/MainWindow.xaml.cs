@@ -59,9 +59,9 @@ namespace MicVolumeLocker
         {
             m_notifyIcon = new System.Windows.Forms.NotifyIcon();
             m_notifyIcon.BalloonTipText = "The app has been minimised. Click the tray icon to show.";
-            m_notifyIcon.BalloonTipTitle = "The App";
+            m_notifyIcon.BalloonTipTitle = this.Title;
             m_notifyIcon.BalloonTipIcon = ToolTipIcon.Info;
-            m_notifyIcon.Text = "The App"; 
+            m_notifyIcon.Text = this.Title; 
             m_notifyIcon.Icon = Resource1.Icon1;
             m_notifyIcon.Click += new EventHandler(m_notifyIcon_Click);
             InitializeComponent();
@@ -223,7 +223,7 @@ namespace MicVolumeLocker
                 m_notifyIcon.Visible = show;
         }
 
-        private void listBox_AutoGeneratingColumn(object sender, System.Windows.Controls.DataGridAutoGeneratingColumnEventArgs e)
+        private void listBox_AutoGeneratingColumn(object? sender, System.Windows.Controls.DataGridAutoGeneratingColumnEventArgs e)
         {
             var tc = e.Column as System.Windows.Controls.DataGridCheckBoxColumn;
             if (tc != null)
